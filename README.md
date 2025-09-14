@@ -1,37 +1,212 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Contact Center AI Coaching Application
 
-## Getting Started
+An AI-powered coaching platform for contact center agents that leverages Telnyx WebRTC for call handling, Telnyx AI Inference for transcript analysis, and Heygen Streaming Avatar for personalized coaching delivery.
 
-First, run the development server:
+## Overview
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+This application addresses the need for scalable, personalized agent coaching in contact centers by:
+
+- **Real-time Call Handling**: Agent dashboard with Telnyx WebRTC integration for making/receiving calls
+- **AI-Powered Analysis**: Automatic transcript analysis using Telnyx AI Inference to generate coaching insights
+- **Interactive Coaching**: Heygen Streaming Avatar delivers personalized feedback and training sessions
+
+## Features
+
+### 🎯 Core Functionality
+- **Agent Call Interface**: Real-time call controls with AI insights display
+- **Webhook Processing**: Automatic handling of call completion and transcript events
+- **AI Coaching Generation**: Personalized feedback based on call performance
+- **Avatar Coaching Sessions**: Interactive training delivery via Heygen avatars
+
+### 🛠 Technical Stack
+- **Frontend**: Next.js 15, React 19, Tailwind CSS
+- **Voice Platform**: Telnyx WebRTC SDK & AI Inference API
+- **Avatar Technology**: Heygen Streaming Avatar SDK
+- **Backend**: Next.js API Routes
+
+## Prerequisites
+
+Before setting up the application, you'll need:
+
+1. **Node.js 18+** and npm
+2. **Telnyx Account** with:
+   - Voice API access
+   - AI Inference API access
+   - SIP Connection configured
+   - Webhook endpoints set up
+3. **Heygen Account** with:
+   - Streaming Avatar API access
+   - Avatar ID configured
+
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd demo-telnyx-heygen
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Configuration**
+
+   Copy the environment template:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Configure your environment variables in `.env.local`:
+   ```env
+   # Telnyx Configuration
+   TELNYX_API_KEY=your_telnyx_api_key
+   NEXT_PUBLIC_TELNYX_JSON_TOKEN=your_telnyx_jwt_token
+   TELNYX_WEBHOOK_SECRET=your_webhook_secret
+   TELNYX_CONNECTION_ID=your_connection_id
+   NEXT_PUBLIC_CALLER_ID=your_caller_id
+
+   # Heygen Configuration
+   NEXT_PUBLIC_HEYGEN_API_KEY=your_heygen_api_key
+   NEXT_PUBLIC_HEYGEN_AVATAR_ID=Santa_Fireplace_Front_public
+
+   # Application
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your_nextauth_secret
+
+   # Simple Auth for MVP
+   ADMIN_USERNAME=admin
+   ADMIN_PASSWORD=your_secure_password
+   ```
+
+4. **Telnyx Webhook Setup**
+
+   Configure webhooks in your Telnyx console to point to:
+   - `https://your-domain.com/api/webhooks/telnyx/call-completed` (Call completion events)
+   - `https://your-domain.com/api/webhooks/telnyx/transcript-ready` (Transcript events)
+
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+## Application Structure
+
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── calls/          # Call management endpoints
+│   │   ├── coaching/       # Coaching generation endpoints
+│   │   └── webhooks/       # Telnyx webhook handlers
+│   ├── dashboard/          # Agent call interface
+│   ├── coaching/           # Avatar coaching interface
+│   └── page.js            # Homepage
+├── components/
+│   └── Navigation.js       # App navigation
+└── lib/
+    ├── telnyx-client.js    # Telnyx WebRTC integration
+    ├── heygen-avatar.js    # Heygen avatar management
+    └── models.js           # Data models
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Usage
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Agent Dashboard (`/dashboard`)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Initialize Connection**: The dashboard automatically connects to Telnyx WebRTC
+2. **Make Calls**: Enter a phone number and click "Make Call"
+3. **Handle Incoming**: Answer incoming calls with the "Answer" button
+4. **Call Controls**: Use Hold, Mute, and Hang Up during active calls
+5. **AI Insights**: Enter transcript text and click "Get AI Insights" for real-time coaching suggestions
 
-## Learn More
+### AI Coaching (`/coaching`)
 
-To learn more about Next.js, take a look at the following resources:
+1. **Generate Coaching**: Paste a call transcript and click "Generate AI Coaching"
+2. **Review Feedback**: See strengths, improvements, and suggestions generated by AI
+3. **Avatar Session**: Click "Start Avatar Coaching" to begin interactive training
+4. **Interactive Experience**: The Heygen avatar will deliver coaching content
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API Endpoints
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Call Management
+- `GET /api/calls/active` - Get active call information
+- `POST /api/calls/active` - Create new active call record
+- `POST /api/calls/insights` - Generate real-time AI insights
 
-## Deploy on Vercel
+### Coaching System
+- `POST /api/coaching/generate` - Generate coaching content from transcript
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js
-&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Webhook Handlers
+- `POST /api/webhooks/telnyx/call-completed` - Handle call completion events
+- `POST /api/webhooks/telnyx/transcript-ready` - Process call transcripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Development
+
+### Testing
+```bash
+npm test          # Run Playwright tests
+npm run test:ui   # Run tests with UI
+```
+
+### Building
+```bash
+npm run build     # Build for production
+npm start         # Start production server
+```
+
+## Configuration Notes
+
+### Telnyx Setup
+1. Create a SIP Connection in your Telnyx console
+2. Configure your connection with webhook URLs
+3. Enable call recording and transcription if needed
+4. Set up AI Inference API access
+
+### Heygen Setup
+1. Create a Heygen account and get API access
+2. Configure your avatar and obtain the Avatar ID
+3. Set up streaming permissions for your application
+
+### Webhook Security
+- Implement webhook signature verification in production
+- Use HTTPS for all webhook endpoints
+- Configure proper CORS settings
+
+## Troubleshooting
+
+### Common Issues
+
+**Telnyx Connection Failed**
+- Verify your API keys and public key are correct
+- Check that your SIP connection is active
+- Ensure webhook URLs are accessible
+
+**Avatar Not Loading**
+- Confirm Heygen API key and Avatar ID are set
+- Check browser console for WebRTC/media permissions
+- Verify Heygen account has streaming avatar access
+
+**Webhook Not Receiving Events**
+- Test webhook URLs are publicly accessible
+- Check Telnyx console webhook configuration
+- Verify webhook endpoints return 200 status
+
+## Production Deployment
+
+For production deployment:
+
+1. **Environment Variables**: Set all required environment variables
+2. **Database**: Replace file-based storage with PostgreSQL/MongoDB
+3. **Authentication**: Implement proper user authentication
+4. **SSL/TLS**: Use HTTPS for all endpoints
+5. **Webhook Security**: Implement signature verification
+6. **Monitoring**: Add logging and error tracking
+7. **Scaling**: Consider containerization with Docker
+
+## License
+
+This project is a demonstration/MVP and is provided as-is for educational purposes.
