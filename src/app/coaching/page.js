@@ -31,9 +31,34 @@ export default function CoachingPage() {
       // Update media stream if avatar is connected
       if (status.isConnected) {
         const stream = heygenAvatarManager.getMediaStream();
+        console.log('=== VIDEO CONNECTION DEBUG ===');
+        console.log('Stream available:', !!stream);
+        console.log('VideoRef available:', !!videoRef.current);
+        console.log('Stream tracks:', stream ? stream.getTracks().length : 'N/A');
+        console.log('Stream active:', stream ? stream.active : 'N/A');
+        if (stream) {
+          const videoTracks = stream.getVideoTracks();
+          const audioTracks = stream.getAudioTracks();
+          console.log('Video tracks:', videoTracks.length);
+          console.log('Audio tracks:', audioTracks.length);
+          audioTracks.forEach((track, i) => {
+            console.log(`Audio track ${i}:`, track.enabled, track.muted, track.readyState);
+          });
+          videoTracks.forEach((track, i) => {
+            console.log(`Video track ${i}:`, track.enabled, track.muted, track.readyState);
+          });
+        }
+        console.log('=== VIDEO CONNECTION DEBUG END ===');
+
         if (stream && videoRef.current) {
           videoRef.current.srcObject = stream;
           setMediaStream(stream);
+
+          // Ensure audio is unmuted and playing
+          videoRef.current.muted = false;
+          videoRef.current.play().catch(e => {
+            console.warn('Video autoplay failed, user interaction may be required:', e);
+          });
         }
       }
     }, 1000);
@@ -213,12 +238,11 @@ Agent: You're very welcome! Have a great day.`)}
 
             <div className="mb-4">
               <div className="bg-gradient-to-br from-red-800 to-green-800 rounded-lg aspect-video flex items-center justify-center relative overflow-hidden">
-                {avatarStatus.isConnected && mediaStream ? (
+                {avatarStatus.isConnected ? (
                   <video
                     ref={videoRef}
                     className="w-full h-full object-cover rounded-lg"
                     autoPlay
-                    muted
                     playsInline
                   />
                 ) : (

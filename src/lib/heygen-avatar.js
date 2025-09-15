@@ -1,8 +1,12 @@
 // Heygen Streaming Avatar Integration
-// Using direct path to CommonJS module to avoid Next.js import issues
-const StreamingAvatarModule = require('@heygen/streaming-avatar/lib/index.cjs.js');
-const StreamingAvatar = StreamingAvatarModule.default;
-const { AvatarQuality, VoiceEmotion, StreamingEvents, TaskType, TaskMode } = StreamingAvatarModule;
+import StreamingAvatar, {
+  AvatarQuality,
+  VoiceEmotion,
+  StreamingEvents,
+  TaskType,
+  TaskMode,
+  StartAvatarRequest
+} from '@heygen/streaming-avatar';
 
 class HeygenAvatarManager {
   constructor() {
@@ -25,8 +29,7 @@ class HeygenAvatarManager {
 
       // Create avatar instance
       this.avatar = new StreamingAvatar({
-        token: process.env.NEXT_PUBLIC_HEYGEN_API_KEY,
-        avatarId: process.env.NEXT_PUBLIC_HEYGEN_AVATAR_ID || 'Santa_Fireplace_Front_public'
+        token: process.env.NEXT_PUBLIC_HEYGEN_API_KEY
       });
 
       this.setupEventListeners();
@@ -83,27 +86,31 @@ class HeygenAvatarManager {
 
       console.log('Starting avatar session...');
 
-      // Create and start session with Heygen API
+      // Step 1: Create session info
       const sessionInfo = await this.avatar.createStartAvatar({
         quality: AvatarQuality.High,
         avatarName: process.env.NEXT_PUBLIC_HEYGEN_AVATAR_ID || 'Santa_Fireplace_Front_public',
         voice: {
           rate: 1.0,
           emotion: VoiceEmotion.FRIENDLY
-        }
+        },
+        language: 'en',
+        disableIdleTimeout: true
       });
 
-      // Start the avatar session
-      this.sessionData = await this.avatar.startAvatar({
-        quality: AvatarQuality.High,
-        avatarName: process.env.NEXT_PUBLIC_HEYGEN_AVATAR_ID || 'Santa_Fireplace_Front_public',
-        voice: {
-          rate: 1.0,
-          emotion: VoiceEmotion.FRIENDLY
-        }
-      }, sessionInfo);
+      console.log('=== SESSION INFO DEBUG ===');
+      console.log('Session info:', sessionInfo);
+      console.log('Session info keys:', Object.keys(sessionInfo || {}));
+      console.log('=== SESSION INFO DEBUG END ===');
 
-      console.log('Avatar session started:', this.sessionData);
+      // Session is already started after createStartAvatar - no need for startAvatar call
+      this.sessionData = sessionInfo;
+
+      console.log('=== AVATAR SESSION SUCCESS ===');
+      console.log('Avatar session is ready with session ID:', sessionInfo.session_id);
+      console.log('LiveKit URL:', sessionInfo.url);
+      console.log('=== AVATAR SESSION SUCCESS END ===');
+
       return this.sessionData;
 
     } catch (error) {
@@ -132,8 +139,14 @@ class HeygenAvatarManager {
   // Make the avatar speak coaching content
   async deliverCoaching(coachingScript, options = {}) {
     try {
+      console.log('=== DELIVER COACHING DEBUG ===');
+      console.log('isConnected:', this.isConnected);
+      console.log('avatar exists:', !!this.avatar);
+      console.log('mediaStream exists:', !!this.mediaStream);
+      console.log('=== DELIVER COACHING DEBUG END ===');
+
       if (!this.isConnected || !this.avatar) {
-        throw new Error('Avatar is not connected');
+        throw new Error(`Avatar is not connected - isConnected: ${this.isConnected}, avatar: ${!!this.avatar}`);
       }
 
       console.log('Avatar delivering coaching:', coachingScript.substring(0, 100) + '...');
