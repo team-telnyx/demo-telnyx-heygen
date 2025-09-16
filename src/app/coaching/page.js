@@ -221,7 +221,7 @@ export default function CoachingPage() {
         {/* Header */}
         <div className="bg-background-secondary border border-border-light rounded-2xl p-8 mb-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">AI Coaching Center</h1>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">Heygen AI Coaching Center</h1>
             <div className="flex items-center gap-6">
               <span className="text-text-muted font-medium">Agent: <span className="text-foreground">{agentId}</span></span>
               <div className={`px-4 py-2 rounded-full text-sm font-medium uppercase tracking-wide ${
