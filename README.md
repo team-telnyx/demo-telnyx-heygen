@@ -1,28 +1,30 @@
 # Contact Center AI Coaching Application
 
-An AI-powered coaching platform for contact center agents that leverages Telnyx WebRTC for call handling, Telnyx AI Inference for transcript analysis, and Heygen Streaming Avatar for personalized coaching delivery.
+An AI-powered coaching platform for contact center agents that leverages Telnyx WebRTC for call handling, Telnyx TeXML for call control, Telnyx AI Inference for transcript analysis, and Heygen Streaming Avatar for personalized coaching delivery.
 
 ## Overview
 
-This application addresses the need for scalable, personalized agent coaching in contact centers by:
+This application provides a complete contact center solution with automated coaching:
 
-- **Real-time Call Handling**: Agent dashboard with Telnyx WebRTC integration for making/receiving calls
+- **Inbound Call Handling**: Automatic recording, transcription, and SIP transfer using TeXML
+- **Real-time Call Interface**: Agent dashboard with WebRTC integration and inbound call alerts
 - **AI-Powered Analysis**: Automatic transcript analysis using Telnyx AI Inference to generate coaching insights
 - **Interactive Coaching**: Heygen Streaming Avatar delivers personalized feedback and training sessions
 
 ## Features
 
 ### 🎯 Core Functionality
-- **Agent Call Interface**: Real-time call controls with AI insights display
-- **Webhook Processing**: Automatic handling of call completion and transcript events
-- **AI Coaching Generation**: Personalized feedback based on call performance
+- **Automated Inbound Flow**: TeXML-based call recording and SIP transfer
+- **Agent Call Interface**: Real-time WebRTC call controls with inbound call alerts
+- **Webhook Processing**: Unified webhook handler for all Telnyx events
+- **AI Coaching Generation**: Personalized feedback based on call transcriptions
 - **Avatar Coaching Sessions**: Interactive training delivery via Heygen avatars
 
 ### 🛠 Technical Stack
 - **Frontend**: Next.js 15, React 19, Tailwind CSS
-- **Voice Platform**: Telnyx WebRTC SDK & AI Inference API
-- **Avatar Technology**: Heygen Streaming Avatar SDK
-- **Backend**: Next.js API Routes
+- **Voice Platform**: Telnyx WebRTC SDK, TeXML Call Scripting & AI Inference API
+- **Avatar Technology**: Heygen Streaming Avatar SDK v2.1.0
+- **Backend**: Next.js API Routes with consolidated webhook handling
 
 ## Prerequisites
 
@@ -62,31 +64,42 @@ Before setting up the application, you'll need:
    ```env
    # Telnyx Configuration
    TELNYX_API_KEY=your_telnyx_api_key
+   TELNYX_ACCOUNT_SID=your_telnyx_account_sid
    NEXT_PUBLIC_TELNYX_JSON_TOKEN=your_telnyx_jwt_token
-   TELNYX_WEBHOOK_SECRET=your_webhook_secret
-   TELNYX_CONNECTION_ID=your_connection_id
-   NEXT_PUBLIC_CALLER_ID=your_caller_id
 
    # Heygen Configuration
    NEXT_PUBLIC_HEYGEN_API_KEY=your_heygen_api_key
    NEXT_PUBLIC_HEYGEN_AVATAR_ID=Santa_Fireplace_Front_public
 
-   # Application
-   NEXTAUTH_URL=http://localhost:3000
-   NEXTAUTH_SECRET=your_nextauth_secret
-
-   # Simple Auth for MVP
-   ADMIN_USERNAME=admin
-   ADMIN_PASSWORD=your_secure_password
+   # Webhook Configuration
+   WEBHOOK_BASE_URL=https://your-ngrok-url.ngrok.app  # For local testing
+   # WEBHOOK_BASE_URL=https://your-app.vercel.app     # For production
    ```
 
-4. **Telnyx Webhook Setup**
+4. **Local Testing with ngrok**
 
-   Configure webhooks in your Telnyx console to point to:
-   - `https://your-domain.com/api/webhooks/telnyx/call-completed` (Call completion events)
-   - `https://your-domain.com/api/webhooks/telnyx/transcript-ready` (Transcript events)
+   For local testing, use ngrok to expose your local server:
+   ```bash
+   # Install ngrok if you haven't already
+   npm install -g ngrok
 
-5. **Start the development server**
+   # Expose your local server (in a separate terminal)
+   ngrok http 3000
+
+   # Copy the https URL and set it as WEBHOOK_BASE_URL in your .env
+   ```
+
+5. **Telnyx Configuration**
+
+   **TeXML Application Setup:**
+   - Configure your TeXML application to use: `${WEBHOOK_BASE_URL}/api/webhooks/telnyx`
+   - The webhook handler will automatically route based on request content
+
+   **WebRTC Setup:**
+   - Create a SIP connection in your Telnyx console
+   - Note your SIP credentials for WebRTC calls
+
+6. **Start the development server**
    ```bash
    npm run dev
    ```
@@ -99,29 +112,38 @@ Before setting up the application, you'll need:
 src/
 ├── app/
 │   ├── api/
-│   │   ├── calls/          # Call management endpoints
 │   │   ├── coaching/       # Coaching generation endpoints
-│   │   └── webhooks/       # Telnyx webhook handlers
-│   ├── dashboard/          # Agent call interface
+│   │   └── webhooks/
+│   │       └── telnyx/     # Unified Telnyx webhook handler
+│   ├── dashboard/          # Agent call interface with inbound alerts
 │   ├── coaching/           # Avatar coaching interface
 │   └── page.js            # Homepage
 ├── components/
-│   └── Navigation.js       # App navigation
+│   ├── Navigation.js       # App navigation
+│   └── IncomingCallPopup.js # Inbound call alert UI
 └── lib/
-    ├── telnyx-client.js    # Telnyx WebRTC integration
-    ├── heygen-avatar.js    # Heygen avatar management
-    └── models.js           # Data models
+    ├── telnyx-client.js    # Telnyx WebRTC integration & call management
+    └── heygen-avatar.js    # Heygen avatar management
 ```
 
 ## Usage
 
+### Inbound Call Flow
+
+1. **Incoming Call**: Calls arrive at your TeXML application endpoint
+2. **Automatic Recording**: TeXML responds with Record instruction for transcription
+3. **Call Transfer**: After 2 seconds, call is transferred to SIP agent endpoint
+4. **Agent Alert**: Dashboard shows incoming call with Answer/Decline buttons
+5. **Call Handling**: Agent can answer, hold, mute, or hang up calls
+6. **Transcription**: Completed calls automatically generate transcripts and coaching
+
 ### Agent Dashboard (`/dashboard`)
 
-1. **Initialize Connection**: The dashboard automatically connects to Telnyx WebRTC
-2. **Make Calls**: Enter a phone number and click "Make Call"
-3. **Handle Incoming**: Answer incoming calls with the "Answer" button
+1. **WebRTC Connection**: Dashboard automatically connects to Telnyx WebRTC
+2. **Inbound Alerts**: Incoming calls display caller information with answer/decline options
+3. **Outbound Calls**: Enter phone number and click "Make Call" for outbound
 4. **Call Controls**: Use Hold, Mute, and Hang Up during active calls
-5. **AI Insights**: Enter transcript text and click "Get AI Insights" for real-time coaching suggestions
+5. **Real-time Status**: See call status, duration, and connection info
 
 ### AI Coaching (`/coaching`)
 
@@ -132,17 +154,20 @@ src/
 
 ## API Endpoints
 
-### Call Management
-- `GET /api/calls/active` - Get active call information
-- `POST /api/calls/active` - Create new active call record
-- `POST /api/calls/insights` - Generate real-time AI insights
-
 ### Coaching System
 - `POST /api/coaching/generate` - Generate coaching content from transcript
 
-### Webhook Handlers
-- `POST /api/webhooks/telnyx/call-completed` - Handle call completion events
-- `POST /api/webhooks/telnyx/transcript-ready` - Process call transcripts
+### Unified Webhook Handler
+- `POST /api/webhooks/telnyx` - Handles all Telnyx webhook types:
+  - **Inbound calls**: Returns TeXML for recording and transfer
+  - **Call status**: Processes call state changes
+  - **Transcriptions**: Generates AI coaching from transcripts
+  - **Generic events**: Handles unknown webhook types
+
+### TeXML Integration
+- Automatic call recording with transcription
+- SIP call transfer to agent endpoints
+- Status callbacks for call state tracking
 
 ## Development
 

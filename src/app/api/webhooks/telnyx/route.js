@@ -80,6 +80,9 @@ async function handleInboundCall(requestData) {
     const callId = requestData.CallSid || requestData.call_control_id || requestData.call_session_id;
     console.log('Call ID:', callId);
 
+    // Get webhook base URL from environment
+    const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
     // Respond with TeXML to start recording with transcription
     const texmlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -87,7 +90,7 @@ async function handleInboundCall(requestData) {
         playBeep="false"
         transcription="true"
         transcriptionEngine="A"
-        transcriptionCallback="https://ef3efa948e9a.ngrok-free.app/api/webhooks/telnyx/transcription"/>
+        transcriptionCallback="${webhookBaseUrl}/api/webhooks/telnyx/transcription"/>
 </Response>`;
 
     console.log('Responding with TeXML to start recording');
@@ -306,10 +309,13 @@ async function transferCall(callId) {
   try {
     console.log('Starting call transfer for call:', callId);
 
+    // Get webhook base URL from environment
+    const webhookBaseUrl = process.env.WEBHOOK_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
     const dialTexmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Dial>
-        <Sip statusCallback="https://ef3efa948e9a.ngrok-free.app/api/webhooks/telnyx/call-status" statusCallbackEvent="answered" statusCallbackMethod="POST">sip:gencredUJitZF1yIkFR3WhYAZObcamLFKSHdHZtjOEZ378x1T@sip.telnyx.com</Sip>
+        <Sip statusCallback="${webhookBaseUrl}/api/webhooks/telnyx/call-status" statusCallbackEvent="answered" statusCallbackMethod="POST">sip:gencredUJitZF1yIkFR3WhYAZObcamLFKSHdHZtjOEZ378x1T@sip.telnyx.com</Sip>
     </Dial>
 </Response>`;
 
