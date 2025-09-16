@@ -227,7 +227,7 @@ export default function Dashboard() {
               {incomingCall && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="text-lg font-bold text-blue-900 mb-2">📞 Incoming Call</div>
-                  <div className="space-y-1 text-sm mb-3">
+                  <div className="space-y-1 text-sm mb-3 text-black">
                     <div><strong>From:</strong> {incomingCall.fromName || incomingCall.from || 'Unknown'}</div>
                     {incomingCall.from && <div><strong>Number:</strong> {incomingCall.from}</div>}
                     {incomingCall.to && <div><strong>To:</strong> {incomingCall.toName || incomingCall.to}</div>}

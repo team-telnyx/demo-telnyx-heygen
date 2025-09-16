@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import axios from "axios";
 import {
-	createCall,
-	updateCallStatus,
+	saveCallHangup,
 	saveTranscript,
 	saveCoachingSession,
 	logCallEvent,
@@ -24,41 +23,23 @@ export async function POST(request) {
 		// console.log("Event data:", event);
 
 		// Log all events to database
-		if (event?.call_control_id && eventType) {
-			await logCallEvent(event.call_control_id, eventType, event).catch(
+		if (event?.payload?.call_control_id && eventType) {
+			await logCallEvent(event.payload.call_control_id, eventType, event).catch(
 				console.error
 			);
 		}
 
 		// Handle different webhook events
 		switch (eventType) {
-			case "call.initiated":
-				if (event.payload.direction === "incoming") {
-					await handleCallInitiated(event);
-				} else console.log("outbound");
-
-				break;
-
-			case "call.answered":
-				if (event.payload.client_state) {
-					await handleCallAnswered(event);
-				} else console.log("answered-swtich");
-				break;
-
-			case "call.bridged":
-				// await handleCallBridged(event);
-				break;
-
 			case "call.hangup":
-				// await handleCallHangup(event);
+				// Only save calls that don't have client_state (incoming calls)
+				if (!event.payload.client_state) {
+					await handleCallHangup(event);
+				}
 				break;
 
-			case "call.recording.saved":
-				// await handleRecordingSaved(event);
-				break;
-
-			case "call.transcription.available":
-				// await handleTranscriptionAvailable(event);
+			case "call.transcription.saved":
+				await handleTranscriptionSaved(event);
 				break;
 
 			default:
@@ -103,73 +84,49 @@ const telnyxAPI = axios.create(TELNYX_CONFIG);
 const toBase64 = (data) => Buffer.from(data).toString("base64");
 const fromBase64 = (data) => Buffer.from(data, "base64").toString();
 
-// Handle call initiated event
-async function handleCallInitiated(event) {
+// Handle call hangup event - save call data to database
+async function handleCallHangup(event) {
 	try {
-		console.log("Handling call initiated:", event.payload.call_control_id);
+		console.log("Handling call hangup:", event.payload.call_session_id);
 
-		// Save call to database
-		// const callData = {
-		//   call_control_id: event.call_control_id,
-		//   call_session_id: event.call_session_id,
-		//   agent_id: event.client_state ? fromBase64(event.client_state) : 'unknown',
-		//   customer_phone: event.from,
-		//   agent_phone: event.to,
-		//   direction: event.direction,
-		//   start_time: event.occurred_at || new Date().toISOString(),
-		//   client_state: event.client_state
-		// };
-
-		// await createCall(callData);
-		// console.log("Call record created in database");
-
-		// Dial w/ answer on bridge
-		const callOptions = {
-			connection_id: process.env.TELNYX_CONNECTION_ID,
-			link_to: event.payload.call_control_id,
-			bridge_intent: true,
-			bridge_on_answer: true,
-			to: process.env.TELNYX_SIP_USER,
-			from: event.payload.from,
-			client_state: toBase64("inbound"),
+		const callData = {
+			call_session_id: event.payload.call_session_id,
+			call_control_id: event.payload.call_control_id,
+			start_time: event.payload.start_time,
+			end_time: event.payload.end_time || event.occurred_at,
+			customer_phone: event.payload.from,
+			agent_phone: event.payload.to
 		};
-		// console.log(callOptions);
-		// Make dial API call
-		const response = await telnyxAPI.post("/calls", callOptions);
-		console.log("Dial call response:", response.data);
+
+		await saveCallHangup(callData);
+		console.log("Call hangup data saved to database");
+
 	} catch (error) {
-		console.error("Error handling call initiated:", error);
+		console.error("Error handling call hangup:", error);
 	}
 }
 
-// Handle call answered event
-async function handleCallAnswered(event) {
+// Handle transcription saved event - save transcript to database
+async function handleTranscriptionSaved(event) {
 	try {
-		console.log("Handling call answered:", event.payload.call_control_id);
+		console.log("Handling transcription saved:", event.payload.call_session_id);
 
-		// Update call status in database
-		// await updateCallStatus(event.call_control_id, "answered");
-
-		// Start recording with transcription
-		const callOptions = {
-			format: "wav",
-      channels:"single",
-			client_state: toBase64("record-transcribe"),
-			play_beep: false,
-			transcription: true,
-			transcription_engine: "A",
-      transcription_language: "en-US"
-			// transcription_speaker_diarization: true,
+		const transcriptData = {
+			call_session_id: event.payload.call_session_id,
+			transcript_text: event.payload.transcription_text
 		};
 
-		// Make record start API call
-		const response = await telnyxAPI.post(
-			`/calls/${event.payload.call_control_id}/actions/record_start`,
-			callOptions
+		await saveTranscript(transcriptData);
+		console.log("Transcript saved to database");
+
+		// Generate coaching content after transcript is saved
+		await generateAndSaveCoaching(
+			event.payload.call_session_id,
+			event.payload.transcription_text
 		);
-		console.log("Record start response:", response.data);
+
 	} catch (error) {
-		console.error("Error handling call answered:", error);
+		console.error("Error handling transcription saved:", error);
 	}
 }
 
@@ -254,7 +211,7 @@ async function handleTranscriptionAvailable(event) {
 }
 
 // Generate and save coaching content
-async function generateAndSaveCoaching(call_control_id, transcript) {
+async function generateAndSaveCoaching(call_session_id, transcript) {
 	try {
 		const coachingPrompt = `
 Analyze this customer service call transcript and provide coaching feedback for the agent:
@@ -309,7 +266,7 @@ Focus on communication skills, problem-solving approach, customer empathy, and c
 
 		// Save coaching session to database
 		const sessionData = {
-			call_control_id,
+			call_session_id,
 			agent_id: "unknown", // Will be updated when we have proper agent tracking
 			coaching_content: coachingContent,
 			avatar_script: coachingContent.avatarScript,

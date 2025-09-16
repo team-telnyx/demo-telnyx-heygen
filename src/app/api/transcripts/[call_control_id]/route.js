@@ -18,17 +18,17 @@ export async function GET(request, { params }) {
     const client = await pool.connect();
 
     try {
+      // First try to find by call_control_id, then by call_session_id
       const result = await client.query(`
         SELECT
           t.*,
           c.customer_phone,
           c.agent_phone,
           c.start_time,
-          c.end_time,
-          c.duration
+          c.end_time
         FROM transcripts t
-        LEFT JOIN calls c ON t.call_control_id = c.call_control_id
-        WHERE t.call_control_id = $1;
+        LEFT JOIN calls c ON t.call_session_id = c.call_session_id
+        WHERE c.call_control_id = $1 OR c.call_session_id = $1;
       `, [call_control_id]);
 
       if (result.rows.length === 0) {

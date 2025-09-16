@@ -16,22 +16,16 @@ export async function initializeDatabase() {
   const client = await pool.connect();
 
   try {
-    // Create calls table
+    // Create calls table with session_id as primary key
     await client.query(`
       CREATE TABLE IF NOT EXISTS calls (
-        id SERIAL PRIMARY KEY,
-        call_control_id VARCHAR(255) UNIQUE NOT NULL,
-        call_session_id VARCHAR(255),
-        agent_id VARCHAR(100),
-        customer_phone VARCHAR(50),
-        agent_phone VARCHAR(50),
-        direction VARCHAR(20),
-        status VARCHAR(50) DEFAULT 'initiated',
+        id SERIAL,
+        call_session_id VARCHAR(255) PRIMARY KEY,
+        call_control_id VARCHAR(255),
         start_time TIMESTAMP,
         end_time TIMESTAMP,
-        duration INTEGER,
-        recording_url TEXT,
-        client_state TEXT,
+        customer_phone VARCHAR(50),
+        agent_phone VARCHAR(50),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -41,13 +35,10 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS transcripts (
         id SERIAL PRIMARY KEY,
-        call_control_id VARCHAR(255) NOT NULL,
+        call_session_id VARCHAR(255) NOT NULL,
         transcript_text TEXT NOT NULL,
-        confidence DECIMAL(3,2),
-        language VARCHAR(10) DEFAULT 'en',
-        speaker_labels JSONB,
         created_at TIMESTAMP DEFAULT NOW(),
-        FOREIGN KEY (call_control_id) REFERENCES calls(call_control_id) ON DELETE CASCADE
+        FOREIGN KEY (call_session_id) REFERENCES calls(call_session_id) ON DELETE CASCADE
       );
     `);
 
@@ -55,13 +46,13 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS coaching_sessions (
         id SERIAL PRIMARY KEY,
-        call_control_id VARCHAR(255) NOT NULL,
+        call_session_id VARCHAR(255) NOT NULL,
         agent_id VARCHAR(100) NOT NULL,
         coaching_content JSONB NOT NULL,
         avatar_script TEXT,
         completed BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT NOW(),
-        FOREIGN KEY (call_control_id) REFERENCES calls(call_control_id) ON DELETE CASCADE
+        FOREIGN KEY (call_session_id) REFERENCES calls(call_session_id) ON DELETE CASCADE
       );
     `);
 
@@ -72,8 +63,7 @@ export async function initializeDatabase() {
         call_control_id VARCHAR(255) NOT NULL,
         event_type VARCHAR(100) NOT NULL,
         event_data JSONB,
-        timestamp TIMESTAMP DEFAULT NOW(),
-        FOREIGN KEY (call_control_id) REFERENCES calls(call_control_id) ON DELETE CASCADE
+        timestamp TIMESTAMP DEFAULT NOW()
       );
     `);
 
@@ -87,43 +77,39 @@ export async function initializeDatabase() {
 }
 
 // Call management functions
-export async function createCall(callData) {
+export async function saveCallHangup(callData) {
   const client = await pool.connect();
 
   try {
     const {
-      call_control_id,
       call_session_id,
-      agent_id,
-      customer_phone,
-      agent_phone,
-      direction,
+      call_control_id,
       start_time,
-      client_state
+      end_time,
+      customer_phone,
+      agent_phone
     } = callData;
 
     const result = await client.query(`
       INSERT INTO calls (
-        call_control_id, call_session_id, agent_id, customer_phone,
-        agent_phone, direction, start_time, client_state
+        call_session_id, call_control_id, start_time, end_time,
+        customer_phone, agent_phone
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT (call_control_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (call_session_id)
       DO UPDATE SET
-        call_session_id = EXCLUDED.call_session_id,
-        agent_id = EXCLUDED.agent_id,
+        call_control_id = EXCLUDED.call_control_id,
+        start_time = EXCLUDED.start_time,
+        end_time = EXCLUDED.end_time,
         customer_phone = EXCLUDED.customer_phone,
         agent_phone = EXCLUDED.agent_phone,
-        direction = EXCLUDED.direction,
-        start_time = EXCLUDED.start_time,
-        client_state = EXCLUDED.client_state,
         updated_at = NOW()
       RETURNING *;
-    `, [call_control_id, call_session_id, agent_id, customer_phone, agent_phone, direction, start_time, client_state]);
+    `, [call_session_id, call_control_id, start_time, end_time, customer_phone, agent_phone]);
 
     return result.rows[0];
   } catch (error) {
-    console.error('Error creating call record:', error);
+    console.error('Error saving call hangup:', error);
     throw error;
   } finally {
     client.release();
@@ -174,18 +160,18 @@ export async function saveTranscript(transcriptData) {
 
   try {
     const {
-      call_control_id,
-      transcript_text,
-      confidence,
-      language = 'en',
-      speaker_labels
+      call_session_id,
+      transcript_text
     } = transcriptData;
 
     const result = await client.query(`
-      INSERT INTO transcripts (call_control_id, transcript_text, confidence, language, speaker_labels)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO transcripts (call_session_id, transcript_text)
+      VALUES ($1, $2)
+      ON CONFLICT (call_session_id) DO UPDATE SET
+        transcript_text = EXCLUDED.transcript_text,
+        created_at = NOW()
       RETURNING *;
-    `, [call_control_id, transcript_text, confidence, language, speaker_labels]);
+    `, [call_session_id, transcript_text]);
 
     return result.rows[0];
   } catch (error) {
@@ -202,17 +188,17 @@ export async function saveCoachingSession(sessionData) {
 
   try {
     const {
-      call_control_id,
+      call_session_id,
       agent_id,
       coaching_content,
       avatar_script
     } = sessionData;
 
     const result = await client.query(`
-      INSERT INTO coaching_sessions (call_control_id, agent_id, coaching_content, avatar_script)
+      INSERT INTO coaching_sessions (call_session_id, agent_id, coaching_content, avatar_script)
       VALUES ($1, $2, $3, $4)
       RETURNING *;
-    `, [call_control_id, agent_id, JSON.stringify(coaching_content), avatar_script]);
+    `, [call_session_id, agent_id, JSON.stringify(coaching_content), avatar_script]);
 
     return result.rows[0];
   } catch (error) {
@@ -261,7 +247,7 @@ export async function getCallById(call_control_id) {
   }
 }
 
-export async function getCallWithTranscript(call_control_id) {
+export async function getCallWithTranscript(call_session_id) {
   const client = await pool.connect();
 
   try {
@@ -269,17 +255,14 @@ export async function getCallWithTranscript(call_control_id) {
       SELECT
         c.*,
         t.transcript_text,
-        t.confidence,
-        t.language,
-        t.speaker_labels,
         cs.coaching_content,
         cs.avatar_script,
         cs.completed as coaching_completed
       FROM calls c
-      LEFT JOIN transcripts t ON c.call_control_id = t.call_control_id
-      LEFT JOIN coaching_sessions cs ON c.call_control_id = cs.call_control_id
-      WHERE c.call_control_id = $1;
-    `, [call_control_id]);
+      LEFT JOIN transcripts t ON c.call_session_id = t.call_session_id
+      LEFT JOIN coaching_sessions cs ON c.call_session_id = cs.call_session_id
+      WHERE c.call_session_id = $1;
+    `, [call_session_id]);
 
     return result.rows[0];
   } catch (error) {
@@ -300,12 +283,11 @@ export async function getRecentCalls(agent_id, limit = 10) {
         t.transcript_text,
         cs.completed as coaching_completed
       FROM calls c
-      LEFT JOIN transcripts t ON c.call_control_id = t.call_control_id
-      LEFT JOIN coaching_sessions cs ON c.call_control_id = cs.call_control_id
-      WHERE c.agent_id = $1
+      LEFT JOIN transcripts t ON c.call_session_id = t.call_session_id
+      LEFT JOIN coaching_sessions cs ON c.call_session_id = cs.call_session_id
       ORDER BY c.created_at DESC
-      LIMIT $2;
-    `, [agent_id, limit]);
+      LIMIT $1;
+    `, [limit]);
 
     return result.rows;
   } catch (error) {
