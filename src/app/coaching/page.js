@@ -366,15 +366,19 @@ Agent: I can see that there's been some congestion in your area. I'm going to re
 
 Customer: That sounds great. When can the technician come?
 
-Agent: I have availability tomorrow between 2-4 PM or Friday between 10 AM-12 PM. Which works better for you?
+Agent: I have availability tomorrow between 8AM-5 PM, thats all we have.
 
-Customer: Tomorrow afternoon works perfectly.
+Customer: That won't work for me
 
-Agent: Perfect! I've scheduled that for you. You should receive a confirmation text shortly. Is there anything else I can help you with today?
+Agent: Well too damn bad. Take or leave it you jerk!
 
-Customer: No, that's everything. Thank you so much for your help!
+Customer: I want to to speak to your manager!
 
-Agent: You're very welcome! Have a great day.`)}
+Agent: Newsflash Karen, I am the manager. So you want us to come tomorrow or what?
+
+Customer: Fine! But Im not happy about it.
+
+Agent: Me either. Welp, we'll see you tomorrow sucker.`)}
               className="w-full mt-2 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 text-sm"
             >
               Load Sample Transcript
