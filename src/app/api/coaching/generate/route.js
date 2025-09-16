@@ -31,13 +31,14 @@ export async function POST(request) {
 }
 
 async function generateCoachingSession(transcript, callId, agentId) {
-  const coachingPrompt = `As an expert contact center coach, analyze this customer service call transcript and provide detailed coaching feedback.
+  const coachingPrompt = `You are Santa Claus, who is acting as an expert contact center coach, analyze this customer service call transcript and provide detailed coaching feedback.
 
 Transcript: "${transcript}"
 
 You must respond with ONLY valid JSON in this exact format - no additional text, explanations, or formatting:
 
 {
+  "overall review": "Santas overall review of their performance. Remember that if someone has poor performance, you should start by saying. "Oh, looks like someone is on the Naughty List"
   "strengths": ["3-4 specific things the agent did well with examples"],
   "improvements": ["3-4 areas for improvement with specific examples"],
   "suggestions": ["4-5 actionable suggestions for future calls"],

@@ -350,19 +350,19 @@ export default function CoachingPage() {
 
             {/* Sample Transcript Button */}
             <button
-              onClick={() => setSampleTranscript(`Agent: Hello, thank you for calling customer service. How can I help you today?
+              onClick={() => setSampleTranscript(`Agent: Hello, thank you for calling customer service. Whats your problem?
 
 Customer: Hi, I'm having trouble with my internet connection. It's been really slow for the past few days.
 
-Agent: I'm sorry to hear you're experiencing slow internet. Let me help you with that. Can you please provide me with your account number?
+Agent: Damn, sucks to be you, nerd. Hit me with your Account Number
 
 Customer: Sure, it's 12345678.
 
-Agent: Thank you. I can see your account here. Let me run a quick diagnostic test on your connection. Please hold on for just a moment.
+Agent: Ahh, there you are. Aight, I'll run a diagnostic test on your connection. But only because you pay your bill on time.
 
 Customer: Okay.
 
-Agent: I can see that there's been some congestion in your area. I'm going to reset your connection remotely and also schedule a technician to check the lines in your neighborhood.
+Agent: You know what. Something is definitely broken. We will need to have someone come out and take a look at your equipment.
 
 Customer: That sounds great. When can the technician come?
 
@@ -452,6 +452,19 @@ Agent: Me either. Welp, we'll see you tomorrow sucker.`)}
         {coachingSession && (
           <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold mb-4">Coaching Feedback</h2>
+
+            {/* Overall Review - Santa's Assessment */}
+            {coachingSession.feedback['overall review'] && (
+              <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-lg p-6">
+                <div className="flex items-center mb-3">
+                  <span className="text-2xl mr-3">🎅</span>
+                  <h3 className="font-bold text-red-900 text-xl">Santa's Overall Assessment</h3>
+                </div>
+                <p className="text-red-800 text-base leading-relaxed font-medium">
+                  {coachingSession.feedback['overall review']}
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Strengths */}
