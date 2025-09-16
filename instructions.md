@@ -1,7 +1,7 @@
 # Contact Center AI Coaching Application
 
 ## Overview
-
+Claude Ignore 
 This application provides AI-powered coaching for contact center agents by leveraging call transcripts and Heygen Streaming Avatar technology to deliver personalized feedback and training after each customer interaction.
 
 ## Problem Statement
