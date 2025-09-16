@@ -35,7 +35,7 @@ export async function initializeDatabase() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS transcripts (
         id SERIAL PRIMARY KEY,
-        call_session_id VARCHAR(255) NOT NULL,
+        call_session_id VARCHAR(255) UNIQUE NOT NULL,
         transcript_text TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT NOW(),
         FOREIGN KEY (call_session_id) REFERENCES calls(call_session_id) ON DELETE CASCADE
@@ -116,43 +116,6 @@ export async function saveCallHangup(callData) {
   }
 }
 
-export async function updateCallStatus(call_control_id, status, additionalData = {}) {
-  const client = await pool.connect();
-
-  try {
-    const updates = ['status = $2', 'updated_at = NOW()'];
-    const values = [call_control_id, status];
-    let paramIndex = 3;
-
-    // Add optional fields to update
-    if (additionalData.end_time) {
-      updates.push(`end_time = $${paramIndex++}`);
-      values.push(additionalData.end_time);
-    }
-    if (additionalData.duration) {
-      updates.push(`duration = $${paramIndex++}`);
-      values.push(additionalData.duration);
-    }
-    if (additionalData.recording_url) {
-      updates.push(`recording_url = $${paramIndex++}`);
-      values.push(additionalData.recording_url);
-    }
-
-    const result = await client.query(`
-      UPDATE calls
-      SET ${updates.join(', ')}
-      WHERE call_control_id = $1
-      RETURNING *;
-    `, values);
-
-    return result.rows[0];
-  } catch (error) {
-    console.error('Error updating call status:', error);
-    throw error;
-  } finally {
-    client.release();
-  }
-}
 
 // Transcript management
 export async function saveTranscript(transcriptData) {
@@ -230,17 +193,17 @@ export async function logCallEvent(call_control_id, event_type, event_data) {
 }
 
 // Query functions
-export async function getCallById(call_control_id) {
+export async function getCallBySessionId(call_session_id) {
   const client = await pool.connect();
 
   try {
     const result = await client.query(`
-      SELECT * FROM calls WHERE call_control_id = $1;
-    `, [call_control_id]);
+      SELECT * FROM calls WHERE call_session_id = $1;
+    `, [call_session_id]);
 
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting call by ID:', error);
+    console.error('Error getting call by session ID:', error);
     throw error;
   } finally {
     client.release();
