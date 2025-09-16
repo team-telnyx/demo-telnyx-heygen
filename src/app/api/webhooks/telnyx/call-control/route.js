@@ -39,6 +39,7 @@ export async function POST(request) {
 				break;
 
 			case "call.transcription.saved":
+			case "call.recording.transcription.saved":
 				await handleTranscriptionSaved(event);
 				break;
 
