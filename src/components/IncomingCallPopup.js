@@ -19,10 +19,22 @@ export default function IncomingCallPopup({ incomingCall, onAnswer, onDecline })
           {/* Call Info */}
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Incoming Call</h2>
-            <p className="text-lg text-gray-600 mb-1">
-              From: <strong>{incomingCall.from || 'Unknown Number'}</strong>
-            </p>
-            <p className="text-sm text-gray-500">
+            <div className="mb-2">
+              <p className="text-lg text-gray-600 mb-1">
+                <span className="font-semibold">From:</span> {incomingCall.fromName || incomingCall.from || 'Unknown'}
+              </p>
+              {incomingCall.from && incomingCall.fromName && (
+                <p className="text-sm text-gray-500">
+                  {incomingCall.from}
+                </p>
+              )}
+            </div>
+            {incomingCall.to && (
+              <p className="text-sm text-gray-600 mb-1">
+                <span className="font-semibold">To:</span> {incomingCall.toName || incomingCall.to}
+              </p>
+            )}
+            <p className="text-xs text-gray-400 mt-2">
               Call ID: {incomingCall.callId}
             </p>
           </div>

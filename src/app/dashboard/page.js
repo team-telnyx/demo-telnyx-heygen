@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { getTelnyxClient, CallManager } from '@/lib/telnyx-client';
-import IncomingCallPopup from '@/components/IncomingCallPopup';
 
 export default function Dashboard() {
   const [telnyxClient, setTelnyxClient] = useState(null);
@@ -41,17 +40,26 @@ export default function Dashboard() {
 
           // Listen for incoming calls via custom event
           handleIncomingCall = (event) => {
-            console.log('Incoming call event received:', event.detail);
+            console.log('=== INCOMING CALL EVENT ===');
+            console.log('Full event:', event);
+            console.log('Event detail:', event.detail);
+            console.log('=== INCOMING CALL EVENT END ===');
+
             const callData = event.detail;
 
             setIncomingCall({
-              callId: callData.call_leg_id,
-              from: callData.from,
-              to: callData.to,
+              callId: callData.callID || callData.call_leg_id,
+              from: callData.from || callData.caller_id_number,
+              to: callData.to || callData.callee_id_number,
+              fromName: callData.caller_id_name,
+              toName: callData.callee_id_name,
               callEvent: callData
             });
 
-            setCallStatus({ status: 'ringing', callId: callData.call_leg_id });
+            setCallStatus({
+              status: 'ringing',
+              callId: callData.callID || callData.call_leg_id
+            });
           };
 
           window.addEventListener('telnyxIncomingCall', handleIncomingCall);
@@ -191,12 +199,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Incoming Call Popup */}
-      <IncomingCallPopup
-        incomingCall={incomingCall}
-        onAnswer={handleAnswerIncomingCall}
-        onDecline={handleDeclineIncomingCall}
-      />
 
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -221,6 +223,49 @@ export default function Dashboard() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold mb-4">Call Controls</h2>
+
+              {/* Incoming Call Display */}
+              {incomingCall && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-lg font-bold text-blue-900 mb-2">📞 Incoming Call</div>
+                  <div className="space-y-1 text-sm mb-3">
+                    <div><strong>From:</strong> {incomingCall.fromName || incomingCall.from || 'Unknown'}</div>
+                    {incomingCall.from && <div><strong>Number:</strong> {incomingCall.from}</div>}
+                    {incomingCall.to && <div><strong>To:</strong> {incomingCall.toName || incomingCall.to}</div>}
+                    <div><strong>Call ID:</strong> {incomingCall.callId}</div>
+                    {incomingCall.callEvent?.direction && <div><strong>Direction:</strong> {incomingCall.callEvent.direction}</div>}
+                    {incomingCall.callEvent?.state && <div><strong>State:</strong> {incomingCall.callEvent.state}</div>}
+                  </div>
+                  <details className="mb-3">
+                    <summary className="text-xs text-gray-500 cursor-pointer">Show Raw Data</summary>
+                    <pre className="text-xs text-gray-600 mt-2 bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                      {JSON.stringify({
+                        callID: incomingCall.callEvent?.callID,
+                        direction: incomingCall.callEvent?.direction,
+                        state: incomingCall.callEvent?.state,
+                        caller_id_name: incomingCall.callEvent?.caller_id_name,
+                        caller_id_number: incomingCall.callEvent?.caller_id_number,
+                        callee_id_name: incomingCall.callEvent?.callee_id_name,
+                        callee_id_number: incomingCall.callEvent?.callee_id_number
+                      }, null, 2)}
+                    </pre>
+                  </details>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAnswerIncomingCall}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-semibold flex-1"
+                    >
+                      ✓ Answer
+                    </button>
+                    <button
+                      onClick={handleDeclineIncomingCall}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-semibold flex-1"
+                    >
+                      ✗ Decline
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Call Status */}
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
@@ -262,7 +307,7 @@ export default function Dashboard() {
               {/* Incoming Call */}
               {callStatus.status === 'ringing' && (
                 <button
-                  onClick={handleAnswerCall}
+                  onClick={handleAnswerIncomingCall}
                   className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 mb-2"
                 >
                   Answer Call
