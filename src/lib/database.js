@@ -77,6 +77,42 @@ export async function initializeDatabase() {
 }
 
 // Call management functions
+export async function saveCallInitiated(callData) {
+  const client = await pool.connect();
+
+  try {
+    const {
+      call_session_id,
+      call_control_id,
+      customer_phone,
+      agent_phone,
+      start_time
+    } = callData;
+
+    const result = await client.query(`
+      INSERT INTO calls (
+        call_session_id, call_control_id, customer_phone, agent_phone, start_time
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (call_session_id)
+      DO UPDATE SET
+        call_control_id = EXCLUDED.call_control_id,
+        customer_phone = EXCLUDED.customer_phone,
+        agent_phone = EXCLUDED.agent_phone,
+        start_time = EXCLUDED.start_time,
+        updated_at = NOW()
+      RETURNING *;
+    `, [call_session_id, call_control_id, customer_phone, agent_phone, start_time]);
+
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error saving call initiated:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function saveCallHangup(callData) {
   const client = await pool.connect();
 
@@ -139,6 +175,31 @@ export async function saveTranscript(transcriptData) {
     return result.rows[0];
   } catch (error) {
     console.error('Error saving transcript:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Append transcription data to existing transcript (for real-time transcription)
+export async function appendTranscription(call_session_id, transcription_segment) {
+  const client = await pool.connect();
+
+  try {
+    // Use UPSERT with ON CONFLICT to handle concurrent transcription updates safely
+    const result = await client.query(`
+      INSERT INTO transcripts (call_session_id, transcript_text, created_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (call_session_id)
+      DO UPDATE SET
+        transcript_text = COALESCE(transcripts.transcript_text, '') || ' ' || $2,
+        created_at = NOW()
+      RETURNING *;
+    `, [call_session_id, transcription_segment]);
+
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error appending transcription:', error);
     throw error;
   } finally {
     client.release();

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { getTelnyxClient, CallManager } from '@/lib/telnyx-client';
+import { TelnyxRTC } from '@telnyx/webrtc';
+import AudioPlayer from '@/components/AudioPlayer';
 
 export default function Dashboard() {
   const [telnyxClient, setTelnyxClient] = useState(null);
@@ -12,12 +14,55 @@ export default function Dashboard() {
   const [aiInsights, setAiInsights] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [isConnected, setIsConnected] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(null);
+  const [currentNotification, setCurrentNotification] = useState(null);
+  const [transcriptStream, setTranscriptStream] = useState(null);
+
+  // Initialize SSE transcript stream
+  useEffect(() => {
+    // console.log('Dashboard mounted - Connecting to transcript stream...');
+
+    const eventSource = new EventSource('/api/transcripts/stream');
+    // console.log('EventSource created:', eventSource);
+
+    eventSource.onopen = () => {
+      // console.log('Transcript stream connected successfully');
+    };
+
+    eventSource.onmessage = (event) => {
+      // console.log('Received SSE message:', event.data);
+      try {
+        const data = JSON.parse(event.data);
+        // console.log('Parsed transcript data:', data);
+
+        if (data.type === 'transcript' && data.transcript) {
+          // console.log('Updating transcript:', data.transcript.length, 'characters');
+          setTranscript(data.transcript);
+        } else if (data.type === 'connected') {
+          // console.log('Initial connection confirmed');
+        }
+      } catch (error) {
+        console.error('Error parsing transcript stream data:', error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('Transcript stream error:', error);
+      // Retry connection if it fails (common on page reload)
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log('SSE connection closed, will reconnect on next page load');
+      }
+    };
+
+    setTranscriptStream(eventSource);
+
+    return () => {
+      // console.log('🔌 Closing transcript stream');
+      eventSource.close();
+    };
+  }, []);
 
   // Initialize Telnyx client on component mount
   useEffect(() => {
-    let handleIncomingCall;
-
     const initClient = async () => {
       try {
         const client = getTelnyxClient();
@@ -30,7 +75,9 @@ export default function Dashboard() {
           // Set up connection event listeners
           client.on('telnyx.ready', () => {
             setIsConnected(true);
-            console.log('Agent dashboard connected to Telnyx');
+            console.log('=== WEBRTC CLIENT READY ===');
+            console.log('Client state:', client.connected);
+            console.log('Client calls:', client.calls);
           });
 
           client.on('telnyx.error', (error) => {
@@ -38,31 +85,28 @@ export default function Dashboard() {
             console.error('Telnyx connection error:', error);
           });
 
-          // Listen for incoming calls via custom event
-          handleIncomingCall = (event) => {
-            console.log('=== INCOMING CALL EVENT ===');
-            console.log('Full event:', event);
-            console.log('Event detail:', event.detail);
-            console.log('=== INCOMING CALL EVENT END ===');
+          // Listen for notifications (exactly like Telnyx demo)
+          const onNotification = (notification) => {
+            console.log('=== WEBRTC NOTIFICATION RECEIVED ===', notification);
 
-            const callData = event.detail;
+            if (notification.type !== "callUpdate") {
+              console.log('Non-callUpdate notification:', notification.type);
+              return;
+            }
+            if (!notification.call) {
+              console.log('No call object in notification');
+              return;
+            }
 
-            setIncomingCall({
-              callId: callData.callID || callData.call_leg_id,
-              from: callData.from || callData.caller_id_number,
-              to: callData.to || callData.callee_id_number,
-              fromName: callData.caller_id_name,
-              toName: callData.callee_id_name,
-              callEvent: callData
-            });
+            // Process call state like Telnyx demo
+            console.log('Processing call update:', notification.call);
+            notification.call = TelnyxRTC.telnyxStateCall(notification.call);
+            setCurrentNotification(notification);
 
-            setCallStatus({
-              status: 'ringing',
-              callId: callData.callID || callData.call_leg_id
-            });
+            console.log('Call state updated:', notification.call.state, 'Direction:', notification.call.direction);
           };
 
-          window.addEventListener('telnyxIncomingCall', handleIncomingCall);
+          client.on('telnyx.notification', onNotification);
 
           await client.connect();
         }
@@ -77,112 +121,78 @@ export default function Dashboard() {
       if (telnyxClient) {
         telnyxClient.disconnect();
       }
-      // Clean up event listeners
-      if (handleIncomingCall) {
-        window.removeEventListener('telnyxIncomingCall', handleIncomingCall);
-      }
     };
   }, [agentId]);
 
-  // Update call status periodically
-  useEffect(() => {
-    if (callManager) {
-      const interval = setInterval(() => {
-        setCallStatus(callManager.getCallStatus());
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [callManager]);
+  // No longer needed - using notifications for real-time call state updates
 
   // Make outbound call
   const handleMakeCall = async () => {
     if (callManager && phoneNumber) {
       try {
         await callManager.makeCall(phoneNumber);
-        setCallStatus(callManager.getCallStatus());
       } catch (error) {
         alert('Error making call: ' + error.message);
       }
     }
   };
 
-  // Answer incoming call from popup
-  const handleAnswerIncomingCall = async () => {
-    if (callManager && incomingCall) {
-      try {
-        await callManager.answerCall(incomingCall.callEvent);
-        setCallStatus(callManager.getCallStatus());
-        setIncomingCall(null); // Hide popup
-      } catch (error) {
-        alert('Error answering call: ' + error.message);
+  // Answer incoming call (simple like Telnyx demo)
+  const handleAnswerCall = () => {
+    if (currentNotification?.call) {
+      console.log('Answering call:', currentNotification.call.id);
+      currentNotification.call.answer();
+    }
+  };
+
+  // Decline incoming call (simple like Telnyx demo)
+  const handleDeclineCall = () => {
+    if (currentNotification?.call) {
+      console.log('Declining call:', currentNotification.call.id);
+      currentNotification.call.hangup();
+    }
+  };
+
+  // Hang up call (simple like Telnyx demo)
+  const handleHangupCall = () => {
+    if (currentNotification?.call) {
+      console.log('Hanging up call:', currentNotification.call.id);
+      currentNotification.call.hangup();
+    }
+  };
+
+  // Hold/unhold call
+  const handleToggleHold = () => {
+    if (currentNotification?.call) {
+      if (currentNotification.call.state === 'held') {
+        currentNotification.call.unhold();
+      } else {
+        currentNotification.call.hold();
       }
     }
   };
 
-  // Decline incoming call from popup
-  const handleDeclineIncomingCall = async () => {
-    if (callManager && incomingCall) {
-      try {
-        await callManager.declineCall(incomingCall.callEvent);
-        setCallStatus({ status: 'idle' });
-        setIncomingCall(null); // Hide popup
-      } catch (error) {
-        alert('Error declining call: ' + error.message);
-      }
-    }
-  };
-
-  // Hang up call
-  const handleHangup = async () => {
-    if (callManager) {
-      try {
-        await callManager.hangupCall();
-        setCallStatus(callManager.getCallStatus());
-
-        // Clear insights when call ends
-        setAiInsights(null);
-        setTranscript('');
-      } catch (error) {
-        alert('Error hanging up: ' + error.message);
-      }
-    }
-  };
-
-  // Toggle hold
-  const handleToggleHold = async () => {
-    if (callManager) {
-      try {
-        await callManager.toggleHold();
-        setCallStatus(callManager.getCallStatus());
-      } catch (error) {
-        alert('Error toggling hold: ' + error.message);
-      }
-    }
-  };
-
-  // Toggle mute
-  const handleToggleMute = async () => {
-    if (callManager) {
-      try {
-        await callManager.toggleMute();
-        setCallStatus(callManager.getCallStatus());
-      } catch (error) {
-        alert('Error toggling mute: ' + error.message);
+  // Mute/unmute call
+  const handleToggleMute = () => {
+    if (currentNotification?.call) {
+      if (currentNotification.call.muted) {
+        currentNotification.call.unmute();
+      } else {
+        currentNotification.call.mute();
       }
     }
   };
 
   // Get AI insights for current conversation
   const handleGetInsights = async () => {
-    if (!transcript || !callStatus.callId) return;
+    if (!transcript || !currentNotification?.call?.id) return;
 
     try {
       const response = await fetch('/api/calls/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          callId: callStatus.callId,
+          callId: currentNotification.call.id,
           currentTranscript: transcript,
           context: 'Live call in progress'
         })
@@ -195,6 +205,20 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error getting AI insights:', error);
     }
+  };
+
+  // Helper function to get current call state (like Telnyx demo)
+  const getCurrentCallState = () => {
+    if (!currentNotification || !currentNotification.call) {
+      return 'idle';
+    }
+    return currentNotification.call.state;
+  };
+
+  // Helper function to check if we have an active call
+  const hasActiveCall = () => {
+    const state = getCurrentCallState();
+    return ['active', 'held', 'ringing'].includes(state);
   };
 
   return (
@@ -224,40 +248,24 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold mb-6 text-foreground">Call Controls</h2>
 
               {/* Incoming Call Display */}
-              {incomingCall && (
+              {getCurrentCallState() === 'ringing' && currentNotification?.call && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="text-lg font-bold text-blue-900 mb-2">📞 Incoming Call</div>
                   <div className="space-y-1 text-sm mb-3 text-black">
-                    <div><strong>From:</strong> {incomingCall.fromName || incomingCall.from || 'Unknown'}</div>
-                    {incomingCall.from && <div><strong>Number:</strong> {incomingCall.from}</div>}
-                    {incomingCall.to && <div><strong>To:</strong> {incomingCall.toName || incomingCall.to}</div>}
-                    <div><strong>Call ID:</strong> {incomingCall.callId}</div>
-                    {incomingCall.callEvent?.direction && <div><strong>Direction:</strong> {incomingCall.callEvent.direction}</div>}
-                    {incomingCall.callEvent?.state && <div><strong>State:</strong> {incomingCall.callEvent.state}</div>}
+                    <div><strong>From:</strong> {currentNotification.call.options?.remoteCallerName || currentNotification.call.options?.remoteCallerNumber || 'Unknown'}</div>
+                    <div><strong>Number:</strong> {currentNotification.call.options?.remoteCallerNumber}</div>
+                    <div><strong>To:</strong> {currentNotification.call.options?.callerNumber}</div>
+                    <div><strong>Call ID:</strong> {currentNotification.call.id}</div>
                   </div>
-                  <details className="mb-3">
-                    <summary className="text-xs text-gray-500 cursor-pointer">Show Raw Data</summary>
-                    <pre className="text-xs text-gray-600 mt-2 bg-gray-100 p-2 rounded overflow-auto max-h-40">
-                      {JSON.stringify({
-                        callID: incomingCall.callEvent?.callID,
-                        direction: incomingCall.callEvent?.direction,
-                        state: incomingCall.callEvent?.state,
-                        caller_id_name: incomingCall.callEvent?.caller_id_name,
-                        caller_id_number: incomingCall.callEvent?.caller_id_number,
-                        callee_id_name: incomingCall.callEvent?.callee_id_name,
-                        callee_id_number: incomingCall.callEvent?.callee_id_number
-                      }, null, 2)}
-                    </pre>
-                  </details>
                   <div className="flex gap-2">
                     <button
-                      onClick={handleAnswerIncomingCall}
+                      onClick={handleAnswerCall}
                       className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-semibold flex-1"
                     >
                       ✓ Answer
                     </button>
                     <button
-                      onClick={handleDeclineIncomingCall}
+                      onClick={handleDeclineCall}
                       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-semibold flex-1"
                     >
                       ✗ Decline
@@ -270,21 +278,21 @@ export default function Dashboard() {
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <div className="text-sm text-gray-600">Status</div>
                 <div className={`text-lg font-semibold ${
-                  callStatus.status === 'active' ? 'text-green-600' :
-                  callStatus.status === 'ringing' ? 'text-blue-600' :
+                  getCurrentCallState() === 'active' ? 'text-green-600' :
+                  getCurrentCallState() === 'ringing' ? 'text-blue-600' :
                   'text-gray-600'
                 }`}>
-                  {callStatus.status.charAt(0).toUpperCase() + callStatus.status.slice(1)}
+                  {getCurrentCallState().charAt(0).toUpperCase() + getCurrentCallState().slice(1)}
                 </div>
-                {callStatus.callId && (
+                {currentNotification?.call?.id && (
                   <div className="text-xs text-gray-500 mt-1">
-                    Call ID: {callStatus.callId}
+                    Call ID: {currentNotification.call.id}
                   </div>
                 )}
               </div>
 
               {/* Outbound Call */}
-              {callStatus.status === 'idle' && (
+              {getCurrentCallState() === 'idle' && (
                 <div className="mb-4">
                   <input
                     type="tel"
@@ -303,29 +311,19 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Incoming Call */}
-              {callStatus.status === 'ringing' && (
-                <button
-                  onClick={handleAnswerIncomingCall}
-                  className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 mb-2"
-                >
-                  Answer Call
-                </button>
-              )}
-
               {/* Active Call Controls */}
-              {(callStatus.status === 'active' || callStatus.status === 'held') && (
+              {(getCurrentCallState() === 'active' || getCurrentCallState() === 'held') && (
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={handleToggleHold}
                       className={`py-2 px-4 rounded-md ${
-                        callStatus.status === 'held'
+                        getCurrentCallState() === 'held'
                           ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
                           : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
                       }`}
                     >
-                      {callStatus.status === 'held' ? 'Unhold' : 'Hold'}
+                      {getCurrentCallState() === 'held' ? 'Unhold' : 'Hold'}
                     </button>
                     <button
                       onClick={handleToggleMute}
@@ -335,7 +333,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                   <button
-                    onClick={handleHangup}
+                    onClick={handleHangupCall}
                     className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700"
                   >
                     Hang Up
@@ -350,7 +348,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Live Assistance</h2>
-                {callStatus.status === 'active' && (
+                {getCurrentCallState() === 'active' && (
                   <button
                     onClick={handleGetInsights}
                     disabled={!transcript}
@@ -368,14 +366,14 @@ export default function Dashboard() {
                 </label>
                 <textarea
                   value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
+                  onChange={() => {}} // Read-only, controlled by SSE stream
                   placeholder={
-                    callStatus.status === 'active'
-                      ? 'Transcript will appear here during call...'
+                    getCurrentCallState() === 'active'
+                      ? 'Live transcript will appear here during call...'
                       : 'Start a call to see live transcript'
                   }
-                  className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md resize-none"
-                  readOnly={callStatus.status !== 'active'}
+                  className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md resize-none bg-white text-black"
+                  readOnly={true}
                 />
               </div>
 
@@ -419,6 +417,14 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Audio Player for Remote Stream */}
+        {currentNotification?.call?.remoteStream && (
+          <AudioPlayer
+            mediaStream={currentNotification.call.remoteStream}
+            style={{ display: 'none' }}
+          />
+        )}
       </div>
     </div>
   );

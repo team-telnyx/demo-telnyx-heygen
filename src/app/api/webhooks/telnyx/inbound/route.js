@@ -3,25 +3,25 @@ import axios from "axios";
 
 export async function POST(request) {
   try {
-    console.log("Inbound call webhook received");
+    // console.log("Inbound call webhook received");
 
     // Log the incoming request data for debugging
     const contentType = request.headers.get("content-type");
-    console.log("Content-Type:", contentType);
+    // console.log("Content-Type:", contentType);
 
     let requestData = {};
 
     // Parse request data based on content type
     if (contentType?.includes("application/json")) {
       requestData = await request.json();
-      console.log("Inbound call JSON data:", requestData);
+      // console.log("Inbound call JSON data:", requestData);
     } else if (contentType?.includes("application/x-www-form-urlencoded")) {
       const formData = await request.formData();
       requestData = Object.fromEntries(formData);
-      console.log("Inbound call form data:", requestData);
+      // console.log("Inbound call form data:", requestData);
     } else {
       const textData = await request.text();
-      console.log("Inbound call text data:", textData);
+      // console.log("Inbound call text data:", textData);
     }
 
     // Extract call ID from the request for potential transfer

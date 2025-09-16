@@ -2,27 +2,27 @@ import { NextResponse } from 'next/server';
 
 // Mock customer database - In production, this would come from your actual database
 const customerDatabase = {
-  "+97145401358": {
+  "+17084769340": {
     "username": "stephenm@telnyx.com",
     "id": "11245-dghgs4-sdgnew4t-dsgd1",
     "name": "Hannibal Lecter",
     "customer_id": "999123",
     "passphrase": "1234",
     "address": "Chicago, Oak Street 66",
-    "phone": "+97145401358",
-    "email": "johnwick@gmail.com",
+    "phone": "+17084769340",
+    "email": "farberbeans@gmail.com",
     "age": 45,
     "dob": "1971-10-06",
     "nick": "BB"
   },
-  "+17084769340": {
+  "+18139955751": {
     "username": "demo@telnyx.com",
     "id": "22345-xyz123-abc456-def789",
-    "name": "John Wick",
+    "name": "Dr. Bratschi",
     "customer_id": "888456",
     "passphrase": "5678",
     "address": "New York, Broadway 123",
-    "phone": "+17084769340",
+    "phone": "+18139955751",
     "email": "hannibal@gmail.com",
     "age": 52,
     "dob": "1969-05-15",
@@ -45,14 +45,21 @@ const customerDatabase = {
 
 export async function POST(request) {
   try {
-    console.log('=== TELNYX CUSTOMER VARIABLES WEBHOOK ===');
+    console.log('=== TELNYX CUSTOMER VARIABLES WEBHOOK RECEIVED ===');
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+    console.log('Request method:', request.method);
+    console.log('Request URL:', request.url);
 
     // Parse the incoming webhook payload
     const webhookData = await request.json();
-    console.log('Received webhook data:', JSON.stringify(webhookData, null, 2));
+    console.log('=== RAW WEBHOOK DATA ===');
+    console.log(JSON.stringify(webhookData, null, 2));
 
     // Extract the phone number from the webhook payload
-    const phoneNumber = webhookData?.webhook_payload?.data?.payload?.telnyx_end_user_target;
+    // Try both possible data structures
+    const phoneNumber =
+      webhookData?.data?.payload?.telnyx_end_user_target ||
+      webhookData?.webhook_payload?.data?.payload?.telnyx_end_user_target;
 
     if (!phoneNumber) {
       console.error('No telnyx_end_user_target found in webhook payload');
@@ -88,9 +95,11 @@ export async function POST(request) {
       });
     }
 
-    console.log('Found customer info:', customerInfo);
+    console.log('=== FOUND CUSTOMER INFO ===');
+    console.log(JSON.stringify(customerInfo, null, 2));
 
     // Return the customer information directly
+    console.log('=== RETURNING CUSTOMER DATA ===');
     return NextResponse.json(customerInfo);
 
   } catch (error) {

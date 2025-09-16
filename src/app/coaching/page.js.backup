@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { heygenAvatarManager, createCoachingSession, endCoachingSession } from '@/lib/heygen-avatar-v2';
+import { heygenAvatarManager, createCoachingSession, endCoachingSession } from '@/lib/heygen-avatar';
 
 export default function CoachingPage() {
   const [avatarStatus, setAvatarStatus] = useState({ isInitialized: false, isConnected: false });
@@ -50,7 +50,7 @@ export default function CoachingPage() {
         const stream = heygenAvatarManager.getMediaStream();
 
         if (stream && videoRef.current && stream !== mediaStream) {
-          // console.log('Connecting avatar video stream');
+          console.log('Connecting avatar video stream');
           videoRef.current.srcObject = stream;
           setMediaStream(stream);
 
@@ -69,8 +69,7 @@ export default function CoachingPage() {
   const initializeAvatar = async () => {
     try {
       setIsLoading(true);
-      const token = await heygenAvatarManager.fetchAccessToken();
-      await heygenAvatarManager.initAvatar(token);
+      await heygenAvatarManager.initialize();
       setAvatarStatus(heygenAvatarManager.getStatus());
     } catch (error) {
       console.error('Failed to initialize avatar:', error);
@@ -196,42 +195,6 @@ export default function CoachingPage() {
       setCoachingSession(null);
     } catch (error) {
       console.error('Error ending session:', error);
-    }
-  };
-
-  // Voice chat control handlers
-  const handleStartVoiceChat = async () => {
-    try {
-      setIsLoading(true);
-      await heygenAvatarManager.startVoiceChat();
-      // console.log('Voice chat started successfully');
-    } catch (error) {
-      console.error('Error starting voice chat:', error);
-      alert('Error starting voice chat: ' + error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleStopVoiceChat = async () => {
-    try {
-      heygenAvatarManager.closeVoiceChat();
-      // console.log('Voice chat stopped');
-    } catch (error) {
-      console.error('Error stopping voice chat:', error);
-    }
-  };
-
-  const handleToggleMute = async () => {
-    try {
-      const status = heygenAvatarManager.getStatus();
-      if (status.isMuted) {
-        heygenAvatarManager.unmuteInputAudio();
-      } else {
-        heygenAvatarManager.muteInputAudio();
-      }
-    } catch (error) {
-      console.error('Error toggling mute:', error);
     }
   };
 
@@ -423,7 +386,7 @@ Agent: Me either. Welp, we'll see you tomorrow sucker.`)}
                     <div className="text-4xl mb-4">👨‍🏫</div>
                     <div className="text-lg">
                       {isLoading ? 'Connecting to Coach...' :
-                       avatarStatus.isInitialized ? 'Coach is Ready' : 'Initializing Coach Avatar...'}
+                       avatarStatus.isInitialized ? 'Coach is Ready' : 'Initializing Santa Avatar...'}
                     </div>
                     {isLoading && (
                       <div className="mt-2">
@@ -440,51 +403,18 @@ Agent: Me either. Welp, we'll see you tomorrow sucker.`)}
                 <button
                   onClick={handleStartAvatarCoaching}
                   disabled={isLoading || !avatarStatus.isInitialized}
-                  className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 disabled:bg-gray-300 mb-2"
+                  className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 disabled:bg-gray-300"
                 >
                   {isLoading ? 'Starting Session...' : 'Start Avatar Coaching'}
                 </button>
 
-                {/* Voice Chat Controls */}
                 {avatarStatus.isConnected && (
-                  <div className="space-y-2">
-                    {!avatarStatus.isVoiceChatActive ? (
-                      <button
-                        onClick={handleStartVoiceChat}
-                        disabled={avatarStatus.isVoiceChatLoading}
-                        className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:bg-gray-300"
-                      >
-                        {avatarStatus.isVoiceChatLoading ? 'Connecting...' : '🎤 Start Voice Chat'}
-                      </button>
-                    ) : (
-                      <div className="space-y-2">
-                        <button
-                          onClick={handleToggleMute}
-                          className={`w-full py-2 px-4 rounded-md ${
-                            avatarStatus.isMuted
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-green-600 hover:bg-green-700 text-white'
-                          }`}
-                        >
-                          {avatarStatus.isMuted ? '🔇 Unmute Mic' : '🎤 Mute Mic'}
-                        </button>
-
-                        <button
-                          onClick={handleStopVoiceChat}
-                          className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700"
-                        >
-                          Stop Voice Chat
-                        </button>
-                      </div>
-                    )}
-
-                    <button
-                      onClick={handleEndSession}
-                      className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700"
-                    >
-                      End Session
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleEndSession}
+                    className="w-full mt-2 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700"
+                  >
+                    End Session
+                  </button>
                 )}
               </div>
             )}
@@ -506,12 +436,12 @@ Agent: Me either. Welp, we'll see you tomorrow sucker.`)}
           <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold mb-4">Coaching Feedback</h2>
 
-            {/* Overall Review - Coach's Assessment */}
+            {/* Overall Review - Santa's Assessment */}
             {coachingSession.feedback['overall review'] && (
               <div className="mb-6 bg-red-50 border-2 border-red-200 rounded-lg p-6">
                 <div className="flex items-center mb-3">
-                  <span className="text-2xl mr-3">👨‍🏫</span>
-                  <h3 className="font-bold text-red-900 text-xl">Coach's Overall Assessment</h3>
+                  <span className="text-2xl mr-3">🎅</span>
+                  <h3 className="font-bold text-red-900 text-xl">Santa's Overall Assessment</h3>
                 </div>
                 <p className="text-red-800 text-base leading-relaxed font-medium">
                   {coachingSession.feedback['overall review']}
