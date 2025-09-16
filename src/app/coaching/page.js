@@ -10,17 +10,34 @@ export default function CoachingPage() {
   const [agentId] = useState('agent_001'); // In production, get from auth
   const [sampleTranscript, setSampleTranscript] = useState('');
   const [mediaStream, setMediaStream] = useState(null);
+  const [storedCalls, setStoredCalls] = useState([]);
+  const [selectedCall, setSelectedCall] = useState(null);
+  const [loadingCalls, setLoadingCalls] = useState(false);
+  const [showStoredTranscripts, setShowStoredTranscripts] = useState(false);
   const videoRef = useRef(null);
 
-  // Initialize avatar on component mount
+  // Initialize avatar and database on component mount
   useEffect(() => {
-    initializeAvatar();
+    const initializeApp = async () => {
+      // Try to initialize database first (silently)
+      try {
+        await fetch('/api/init', { method: 'POST' });
+      } catch (error) {
+        console.warn('Database initialization failed:', error);
+      }
+
+      // Initialize avatar and load stored calls
+      initializeAvatar();
+      loadStoredCalls();
+    };
+
+    initializeApp();
 
     return () => {
       // Cleanup on unmount
       endCoachingSession().catch(console.error);
     };
-  }, []);
+  }, [agentId]);
 
   // Update avatar status and media stream periodically
   useEffect(() => {
@@ -76,6 +93,53 @@ export default function CoachingPage() {
       alert('Failed to initialize coaching avatar. Please check your Heygen configuration.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadStoredCalls = async () => {
+    try {
+      setLoadingCalls(true);
+      const response = await fetch(`/api/calls/history?agent_id=${agentId}&limit=20`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch call history');
+      }
+
+      const data = await response.json();
+      setStoredCalls(data.calls || []);
+    } catch (error) {
+      console.error('Error loading stored calls:', error);
+    } finally {
+      setLoadingCalls(false);
+    }
+  };
+
+  const handleSelectStoredTranscript = async (call) => {
+    try {
+      setSelectedCall(call);
+
+      // Load the full transcript if available
+      if (call.transcript_text) {
+        setSampleTranscript(call.transcript_text);
+        setShowStoredTranscripts(false);
+      } else {
+        // Try to fetch the full transcript
+        const response = await fetch(`/api/transcripts/${call.call_control_id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.transcript && data.transcript.transcript_text) {
+            setSampleTranscript(data.transcript.transcript_text);
+            setShowStoredTranscripts(false);
+          } else {
+            alert('No transcript available for this call');
+          }
+        } else {
+          alert('Failed to load transcript');
+        }
+      }
+    } catch (error) {
+      console.error('Error selecting transcript:', error);
+      alert('Error loading transcript');
     }
   };
 
@@ -152,20 +216,20 @@ export default function CoachingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-background-secondary border border-border-light rounded-2xl p-8 mb-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">AI Coaching Center</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Agent: {agentId}</span>
-              <div className={`px-3 py-1 rounded-full text-sm ${
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">AI Coaching Center</h1>
+            <div className="flex items-center gap-6">
+              <span className="text-text-muted font-medium">Agent: <span className="text-foreground">{agentId}</span></span>
+              <div className={`px-4 py-2 rounded-full text-sm font-medium uppercase tracking-wide ${
                 avatarStatus.isConnected
-                  ? 'bg-green-100 text-green-800'
+                  ? 'bg-accent-green text-white'
                   : avatarStatus.isInitialized
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-accent-orange text-white'
+                  : 'bg-red-500 text-white'
               }`}>
                 {avatarStatus.isConnected ? 'Avatar Ready' :
                  avatarStatus.isInitialized ? 'Avatar Initialized' : 'Avatar Disconnected'}
@@ -174,27 +238,112 @@ export default function CoachingPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coaching Input */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">Generate Coaching</h2>
+        {/* Stored Transcripts Section */}
+        <div className="mb-8">
+          <div className="bg-background-secondary border border-border-light rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-foreground">Previous Call Transcripts</h2>
+              <div className="flex gap-4">
+                <button
+                  onClick={loadStoredCalls}
+                  disabled={loadingCalls}
+                  className="btn-secondary disabled:opacity-50"
+                >
+                  {loadingCalls ? 'Loading...' : 'Refresh'}
+                </button>
+                <button
+                  onClick={() => setShowStoredTranscripts(!showStoredTranscripts)}
+                  className="btn-secondary"
+                >
+                  {showStoredTranscripts ? 'Hide' : 'Show'} Transcripts
+                </button>
+              </div>
+            </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            {showStoredTranscripts && (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {storedCalls.length === 0 ? (
+                  <div className="text-center text-text-muted py-8">
+                    {loadingCalls ? 'Loading transcripts...' : 'No previous calls with transcripts found'}
+                  </div>
+                ) : (
+                  storedCalls
+                    .filter(call => call.transcript_text)
+                    .map((call) => (
+                      <div
+                        key={call.call_control_id}
+                        className={`border border-border-light rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                          selectedCall?.call_control_id === call.call_control_id
+                            ? 'bg-accent-citron bg-opacity-10 border-accent-citron'
+                            : 'bg-background hover:bg-background-secondary'
+                        }`}
+                        onClick={() => handleSelectStoredTranscript(call)}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-2">
+                              <span className="text-sm font-medium text-foreground">
+                                📞 {call.customer_phone || 'Unknown'}
+                              </span>
+                              <span className="text-xs text-text-muted">
+                                {new Date(call.start_time).toLocaleDateString()} {new Date(call.start_time).toLocaleTimeString()}
+                              </span>
+                              {call.duration && (
+                                <span className="text-xs text-text-muted">
+                                  {Math.floor(call.duration / 60)}:{(call.duration % 60).toString().padStart(2, '0')}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-text-muted text-sm line-clamp-2">
+                              {call.transcript_text ? call.transcript_text.substring(0, 150) + '...' : 'No transcript available'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              call.coaching_completed
+                                ? 'bg-accent-green text-white'
+                                : 'bg-accent-orange text-white'
+                            }`}>
+                              {call.coaching_completed ? 'Coached' : 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Coaching Input */}
+          <div className="bg-background-secondary border border-border-light rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-foreground">Generate Coaching</h2>
+              {selectedCall && (
+                <span className="text-sm text-text-muted">
+                  From call: {new Date(selectedCall.start_time).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-text-secondary mb-3">
                 Call Transcript
               </label>
               <textarea
                 value={sampleTranscript}
                 onChange={(e) => setSampleTranscript(e.target.value)}
                 placeholder="Paste your call transcript here to generate AI coaching..."
-                className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md resize-none"
+                className="w-full h-40 px-4 py-3 border border-border-light rounded-xl resize-none bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent-citron focus:border-transparent"
               />
             </div>
 
             <button
               onClick={handleGenerateCoaching}
               disabled={isLoading || !sampleTranscript.trim()}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-300"
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Generating...' : 'Generate AI Coaching'}
             </button>
@@ -247,10 +396,10 @@ Agent: You're very welcome! Have a great day.`)}
                   />
                 ) : (
                   <div className="text-center text-white">
-                    <div className="text-4xl mb-4">🎅</div>
+                    <div className="text-4xl mb-4">👨‍🏫</div>
                     <div className="text-lg">
-                      {isLoading ? 'Connecting to Santa...' :
-                       avatarStatus.isInitialized ? 'Santa Avatar Ready' : 'Initializing Santa Avatar...'}
+                      {isLoading ? 'Connecting to Coach...' :
+                       avatarStatus.isInitialized ? 'Coach is Ready' : 'Initializing Santa Avatar...'}
                     </div>
                     {isLoading && (
                       <div className="mt-2">

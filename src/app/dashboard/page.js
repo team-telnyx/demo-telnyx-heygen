@@ -198,19 +198,18 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-background-secondary border border-border-light rounded-2xl p-8 mb-8">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Agent Dashboard</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Agent: {agentId}</span>
-              <div className={`px-3 py-1 rounded-full text-sm ${
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">Agent Dashboard</h1>
+            <div className="flex items-center gap-6">
+              <span className="text-text-muted font-medium">Agent: <span className="text-foreground">{agentId}</span></span>
+              <div className={`px-4 py-2 rounded-full text-sm font-medium uppercase tracking-wide ${
                 isConnected
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-accent-green text-white'
+                  : 'bg-red-500 text-white'
               }`}>
                 {isConnected ? 'Connected' : 'Disconnected'}
               </div>
@@ -218,11 +217,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Call Controls */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-semibold mb-4">Call Controls</h2>
+            <div className="bg-background-secondary border border-border-light rounded-2xl p-6">
+              <h2 className="text-xl font-semibold mb-6 text-foreground">Call Controls</h2>
 
               {/* Incoming Call Display */}
               {incomingCall && (

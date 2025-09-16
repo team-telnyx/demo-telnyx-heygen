@@ -2,27 +2,27 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-6 py-16">
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+        <div className="text-center mb-24">
+          <h1 className="text-6xl font-bold text-foreground mb-8 tracking-tight">
             Contact Center AI Coaching
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-text-muted mb-12 max-w-4xl mx-auto leading-relaxed">
             Enhance agent performance with AI-powered coaching using real call transcripts
             and interactive Heygen avatars for personalized training after every customer interaction.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-6 justify-center">
             <Link
               href="/dashboard"
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              className="btn-primary"
             >
               Agent Dashboard
             </Link>
             <Link
               href="/coaching"
-              className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+              className="btn-secondary"
             >
               AI Coaching
             </Link>
@@ -30,29 +30,41 @@ export default function Home() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-3xl mb-4">📞</div>
-            <h3 className="text-xl font-semibold mb-2">Real-time Call Interface</h3>
-            <p className="text-gray-600">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
+          <div className="bg-background-secondary border border-border-light rounded-2xl p-8 hover:shadow-lg transition-all duration-300">
+            <div className="w-12 h-12 bg-accent-citron rounded-full flex items-center justify-center mb-6">
+              <svg className="w-6 h-6 text-foreground" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold mb-4 text-foreground">Real-time Call Interface</h3>
+            <p className="text-text-muted leading-relaxed">
               Handle calls with Telnyx WebRTC integration, displaying AI insights
               and transcripts during live customer interactions.
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-3xl mb-4">🧠</div>
-            <h3 className="text-xl font-semibold mb-2">AI-Powered Analysis</h3>
-            <p className="text-gray-600">
+          <div className="bg-background-secondary border border-border-light rounded-2xl p-8 hover:shadow-lg transition-all duration-300">
+            <div className="w-12 h-12 bg-accent-orange rounded-full flex items-center justify-center mb-6">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold mb-4 text-foreground">AI-Powered Analysis</h3>
+            <p className="text-text-muted leading-relaxed">
               Automatically analyze call transcripts using Telnyx AI Inference
               to generate personalized coaching feedback and suggestions.
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-3xl mb-4">🤖</div>
-            <h3 className="text-xl font-semibold mb-2">Interactive Avatar Coaching</h3>
-            <p className="text-gray-600">
+          <div className="bg-background-secondary border border-border-light rounded-2xl p-8 hover:shadow-lg transition-all duration-300">
+            <div className="w-12 h-12 bg-accent-green rounded-full flex items-center justify-center mb-6">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold mb-4 text-foreground">Interactive Avatar Coaching</h3>
+            <p className="text-text-muted leading-relaxed">
               Receive coaching through Heygen's streaming avatar technology
               for engaging, personalized training experiences.
             </p>
@@ -60,62 +72,62 @@ export default function Home() {
         </div>
 
         {/* Architecture Overview */}
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-16">
-          <h2 className="text-2xl font-semibold mb-6 text-center">How It Works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-background-secondary border border-border-light rounded-2xl p-12 mb-24">
+          <h2 className="text-3xl font-semibold mb-12 text-center text-foreground">How It Works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">1️⃣</span>
+              <div className="w-20 h-20 bg-accent-citron rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-foreground">1</span>
               </div>
-              <h4 className="font-semibold mb-2">Handle Calls</h4>
-              <p className="text-sm text-gray-600">Agents use the dashboard to make and receive calls via Telnyx WebRTC</p>
+              <h4 className="font-semibold mb-3 text-foreground text-lg">Handle Calls</h4>
+              <p className="text-text-muted">Agents use the dashboard to make and receive calls via Telnyx WebRTC</p>
             </div>
 
             <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">2️⃣</span>
+              <div className="w-20 h-20 bg-accent-orange rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-white">2</span>
               </div>
-              <h4 className="font-semibold mb-2">Process Transcripts</h4>
-              <p className="text-sm text-gray-600">Webhooks capture call data and transcripts for analysis</p>
+              <h4 className="font-semibold mb-3 text-foreground text-lg">Process Transcripts</h4>
+              <p className="text-text-muted">Webhooks capture call data and transcripts for analysis</p>
             </div>
 
             <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">3️⃣</span>
+              <div className="w-20 h-20 bg-accent-green rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-white">3</span>
               </div>
-              <h4 className="font-semibold mb-2">Generate Coaching</h4>
-              <p className="text-sm text-gray-600">AI analyzes performance and creates personalized feedback</p>
+              <h4 className="font-semibold mb-3 text-foreground text-lg">Generate Coaching</h4>
+              <p className="text-text-muted">AI analyzes performance and creates personalized feedback</p>
             </div>
 
             <div className="text-center">
-              <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">4️⃣</span>
+              <div className="w-20 h-20 bg-foreground rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-background">4</span>
               </div>
-              <h4 className="font-semibold mb-2">Deliver Training</h4>
-              <p className="text-sm text-gray-600">Avatar presents coaching content in an engaging format</p>
+              <h4 className="font-semibold mb-3 text-foreground text-lg">Deliver Training</h4>
+              <p className="text-text-muted">Avatar presents coaching content in an engaging format</p>
             </div>
           </div>
         </div>
 
         {/* Technology Stack */}
-        <div className="bg-gray-900 text-white rounded-lg p-8">
-          <h2 className="text-2xl font-semibold mb-6 text-center">Built With</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="bg-foreground text-background rounded-2xl p-12">
+          <h2 className="text-3xl font-semibold mb-12 text-center">Built With</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <h4 className="font-semibold mb-2">Frontend</h4>
-              <p className="text-sm text-gray-300">Next.js, React, Tailwind CSS</p>
+              <h4 className="font-semibold mb-3 text-lg">Frontend</h4>
+              <p className="text-background opacity-75">Next.js, React, Tailwind CSS</p>
             </div>
             <div className="text-center">
-              <h4 className="font-semibold mb-2">Voice Platform</h4>
-              <p className="text-sm text-gray-300">Telnyx WebRTC & AI Inference</p>
+              <h4 className="font-semibold mb-3 text-lg">Voice Platform</h4>
+              <p className="text-background opacity-75">Telnyx WebRTC & AI Inference</p>
             </div>
             <div className="text-center">
-              <h4 className="font-semibold mb-2">Avatar Technology</h4>
-              <p className="text-sm text-gray-300">Heygen Streaming Avatar</p>
+              <h4 className="font-semibold mb-3 text-lg">Avatar Technology</h4>
+              <p className="text-background opacity-75">Heygen Streaming Avatar</p>
             </div>
             <div className="text-center">
-              <h4 className="font-semibold mb-2">Deployment</h4>
-              <p className="text-sm text-gray-300">Next.js API Routes</p>
+              <h4 className="font-semibold mb-3 text-lg">Deployment</h4>
+              <p className="text-background opacity-75">Next.js API Routes</p>
             </div>
           </div>
         </div>
